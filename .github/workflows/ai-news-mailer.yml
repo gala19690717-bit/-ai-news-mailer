@@ -1,0 +1,35 @@
+name: AI News Mailer
+ 
+on:
+  schedule:
+    # 朝8時 JST = UTC 23時（前日）
+    - cron: "0 23 * * *"
+    # 夜20時 JST = UTC 11時
+    - cron: "0 11 * * *"
+  # 手動実行ボタン（テスト用）
+  workflow_dispatch:
+ 
+jobs:
+  send-ai-news:
+    runs-on: ubuntu-latest
+ 
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+ 
+      - name: Python 3.11 をセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+ 
+      - name: 依存パッケージをインストール
+        run: pip install anthropic
+ 
+      - name: AI情報を収集してメール送信
+        env:
+          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
+          GMAIL_USER:           ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD:   ${{ secrets.GMAIL_APP_PASSWORD }}
+          RECIPIENT_EMAIL:      ${{ secrets.RECIPIENT_EMAIL }}
+        run: python main.py
+ 
