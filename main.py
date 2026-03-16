@@ -1,5 +1,4 @@
 
-コピー
 
 """
 AI News Mailer（無料版）
