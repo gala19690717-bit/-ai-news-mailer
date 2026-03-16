@@ -1,101 +1,86 @@
 """
-AI News Mailer（無料版）
-NewsAPI を使ってAI最新情報を収集し、毎日2回メールで送信するスクリプト
-NewsAPI 無料プラン: https://newsapi.org/register
+AI News Mailer（日本語RSS版）
+日本語RSSフィードからAI最新情報を収集し、毎日2回メールで送信するスクリプト
 """
  
 import os
 import smtplib
 import urllib.request
-import urllib.parse
-import json
-from datetime import datetime, timedelta
+import xml.etree.ElementTree as ET
+from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
  
 # ── 設定 ──────────────────────────────────────────────
-NEWS_API_KEY      = os.environ["NEWS_API_KEY"]        # NewsAPI のキー（無料）
-GMAIL_USER        = os.environ["GMAIL_USER"]          # 送信元 Gmail アドレス
-GMAIL_APP_PASSWORD = os.environ["GMAIL_APP_PASSWORD"] # Gmail アプリパスワード
-RECIPIENT_EMAIL   = os.environ["RECIPIENT_EMAIL"]     # 受信先メールアドレス
+GMAIL_USER         = os.environ["GMAIL_USER"]
+GMAIL_APP_PASSWORD = os.environ["GMAIL_APP_PASSWORD"]
+RECIPIENT_EMAIL    = os.environ["RECIPIENT_EMAIL"]
 # ──────────────────────────────────────────────────────
  
-# 収集するAI情報のキーワード設定
-CATEGORIES = [
+# 日本語AIニュースのRSSフィード
+RSS_SOURCES = [
     {
-        "label": "📰 AI最新ニュース",
-        "query": "artificial intelligence AI",
+        "label": "📰 ITmedia AI",
+        "url": "https://rss.itmedia.co.jp/rss/2.0/aiplus.xml",
         "color": "#7c3aed",
     },
     {
-        "label": "🏢 企業動向（OpenAI / Anthropic / NVIDIA）",
-        "query": "OpenAI OR Anthropic OR NVIDIA AI",
+        "label": "🏢 TechCrunch Japan",
+        "url": "https://jp.techcrunch.com/feed/",
         "color": "#0969da",
     },
     {
-        "label": "🔬 AI研究・論文",
-        "query": "AI research machine learning LLM",
+        "label": "🔬 Ledge.ai",
+        "url": "https://ledge.ai/feed/",
         "color": "#2da44e",
     },
     {
-        "label": "📈 AIトレンド",
-        "query": "AI trend generative AI ChatGPT",
+        "label": "📈 AIsmiley",
+        "url": "https://aismiley.co.jp/feed/",
         "color": "#e85d04",
     },
 ]
  
  
-def fetch_news(query: str, max_articles: int = 5) -> list[dict]:
-    """NewsAPI から記事を取得する（日本語・英語両方）"""
-    yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
- 
-    articles = []
- 
-    # まず日本語記事を取得
-    params_ja = urllib.parse.urlencode({
-        "q": query,
-        "from": yesterday,
-        "sortBy": "publishedAt",
-        "language": "ja",
-        "pageSize": max_articles,
-        "apiKey": NEWS_API_KEY,
-    })
-    url_ja = f"https://newsapi.org/v2/everything?{params_ja}"
+def fetch_rss(url: str, max_items: int = 5) -> list[dict]:
+    """RSSフィードから記事を取得する"""
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; AI-News-Mailer/1.0)"}
     try:
-        with urllib.request.urlopen(url_ja, timeout=10) as res:
-            data = json.loads(res.read().decode())
-            articles = data.get("articles", [])
-    except Exception:
-        pass
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=10) as res:
+            content = res.read()
+        root = ET.fromstring(content)
+        ns = {"atom": "http://www.w3.org/2005/Atom"}
  
-    # 日本語記事が少なければ英語記事で補完
-    if len(articles) < 3:
-        params_en = urllib.parse.urlencode({
-            "q": query,
-            "from": yesterday,
-            "sortBy": "publishedAt",
-            "language": "en",
-            "pageSize": max_articles,
-            "apiKey": NEWS_API_KEY,
-        })
-        url_en = f"https://newsapi.org/v2/everything?{params_en}"
-        try:
-            with urllib.request.urlopen(url_en, timeout=10) as res:
-                data = json.loads(res.read().decode())
-                articles += data.get("articles", [])
-        except Exception as e:
-            print(f"  ⚠️  NewsAPI エラー ({query}): {e}")
- 
-    return articles[:max_articles]
+        articles = []
+        # RSS 2.0形式
+        for item in root.findall(".//item")[:max_items]:
+            title = item.findtext("title") or ""
+            link  = item.findtext("link") or "#"
+            desc  = item.findtext("description") or ""
+            date  = item.findtext("pubDate") or ""
+            # HTMLタグを除去
+            import re
+            desc = re.sub(r"<[^>]+>", "", desc)[:150]
+            articles.append({
+                "title": title.strip(),
+                "url": link.strip(),
+                "description": desc.strip(),
+                "publishedAt": date[:16],
+                "source": url,
+            })
+        return articles
+    except Exception as e:
+        print(f"  ⚠️  RSS取得エラー ({url}): {e}")
+        return []
  
  
 def format_article(article: dict) -> str:
     """記事をHTML形式に変換する"""
     title       = article.get("title", "タイトルなし")
-    description = article.get("description") or ""
+    description = article.get("description", "")
     url         = article.get("url", "#")
-    source      = article.get("source", {}).get("name", "不明")
-    published   = article.get("publishedAt", "")[:10]
+    published   = article.get("publishedAt", "")
  
     return f"""
     <div style="border-left: 3px solid #e5e7eb; padding: 8px 0 8px 14px; margin-bottom: 14px;">
@@ -103,10 +88,10 @@ def format_article(article: dict) -> str:
         {title}
       </a>
       <div style="font-size:12px;color:#6b7280;margin:3px 0 5px;">
-        {source}　{published}
+        {published}
       </div>
       <div style="font-size:13px;color:#374151;line-height:1.6;">
-        {description[:150] + "…" if len(description) > 150 else description}
+        {description + "…" if description else ""}
       </div>
     </div>
     """
@@ -157,8 +142,8 @@ def build_html_email(sections: list[dict]) -> str:
         <tr>
           <td style="background:#f9fafb;padding:20px 32px;border-top:1px solid #e5e7eb;text-align:center;">
             <div style="font-size:12px;color:#9ca3af;">
-              このメールはAI News Mailer（無料版）によって自動送信されました<br>
-              Powered by NewsAPI + GitHub Actions
+              このメールはAI News Mailer（日本語RSS版）によって自動送信されました<br>
+              Powered by 日本語RSSフィード + GitHub Actions
             </div>
           </td>
         </tr>
@@ -187,12 +172,12 @@ def main():
     print(f"[{datetime.now().isoformat()}] AI情報収集を開始します...")
  
     sections = []
-    for cat in CATEGORIES:
-        print(f"  取得中: {cat['label']}")
-        articles = fetch_news(cat["query"])
-        sections.append({"label": cat["label"], "color": cat["color"], "articles": articles})
+    for src in RSS_SOURCES:
+        print(f"  取得中: {src['label']}")
+        articles = fetch_rss(src["url"])
+        sections.append({"label": src["label"], "color": src["color"], "articles": articles})
  
-    slot    = "朝" if datetime.now().hour < 14 else "夜"
+    slot     = "朝" if datetime.now().hour < 14 else "夜"
     date_str = datetime.now().strftime("%m/%d")
     subject  = f"【AI情報】{date_str} {slot}のダイジェスト"
  
