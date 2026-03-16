@@ -1,5 +1,3 @@
-
-
 """
 AI News Mailer（無料版）
 NewsAPI を使ってAI最新情報を収集し、毎日2回メールで送信するスクリプト
@@ -48,24 +46,47 @@ CATEGORIES = [
  
  
 def fetch_news(query: str, max_articles: int = 5) -> list[dict]:
-    """NewsAPI から記事を取得する"""
+    """NewsAPI から記事を取得する（日本語・英語両方）"""
     yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-    params = urllib.parse.urlencode({
+ 
+    articles = []
+ 
+    # まず日本語記事を取得
+    params_ja = urllib.parse.urlencode({
         "q": query,
         "from": yesterday,
         "sortBy": "publishedAt",
-        "language": "en",
+        "language": "ja",
         "pageSize": max_articles,
         "apiKey": NEWS_API_KEY,
     })
-    url = f"https://newsapi.org/v2/everything?{params}"
+    url_ja = f"https://newsapi.org/v2/everything?{params_ja}"
     try:
-        with urllib.request.urlopen(url, timeout=10) as res:
+        with urllib.request.urlopen(url_ja, timeout=10) as res:
             data = json.loads(res.read().decode())
-            return data.get("articles", [])
-    except Exception as e:
-        print(f"  ⚠️  NewsAPI エラー ({query}): {e}")
-        return []
+            articles = data.get("articles", [])
+    except Exception:
+        pass
+ 
+    # 日本語記事が少なければ英語記事で補完
+    if len(articles) < 3:
+        params_en = urllib.parse.urlencode({
+            "q": query,
+            "from": yesterday,
+            "sortBy": "publishedAt",
+            "language": "en",
+            "pageSize": max_articles,
+            "apiKey": NEWS_API_KEY,
+        })
+        url_en = f"https://newsapi.org/v2/everything?{params_en}"
+        try:
+            with urllib.request.urlopen(url_en, timeout=10) as res:
+                data = json.loads(res.read().decode())
+                articles += data.get("articles", [])
+        except Exception as e:
+            print(f"  ⚠️  NewsAPI エラー ({query}): {e}")
+ 
+    return articles[:max_articles]
  
  
 def format_article(article: dict) -> str:
@@ -182,4 +203,3 @@ def main():
  
 if __name__ == "__main__":
     main()
- 
