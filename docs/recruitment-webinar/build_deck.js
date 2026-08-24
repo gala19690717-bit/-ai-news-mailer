@@ -4,23 +4,32 @@ const ReactDOMServer = require("react-dom/server");
 const sharp = require("sharp");
 const Fi = require("react-icons/fi");
 
-// ---- palette (derived from the client's proposal PDF) ----
-const NAVY = "1B365D";
-const NAVY_DK = "12253F";
-const TERRA = "E07A5F";
-const TERRA_SOFT = "F9E5DC";
-const AI = "2A9D8F";
-const AI_SOFT = "DFF0ED";
-const SLATE = "3D405B";
-const BG = "F7F5EF";
+// ---- palette: Anthropic brand guidelines (brand-guidelines/SKILL.md) ----
+// Brand values used verbatim: Dark #141413 / Light #faf9f5 / Mid Gray #b0aea5 /
+// Light Gray #e8e6dc / Orange #d97757 / Blue #6a9bcc / Green #788c5d.
+// Shades and tints below are derived from those seven for depth and legibility.
+const NAVY = "141413";      // brand Dark — headings, dark cards, table headers
+const NAVY_DK = "141413";   // brand Dark — full-bleed dark slides
+const DARK2 = "2A2926";     // derived shade of Dark, for depth on dark slides
+const TERRA = "D97757";     // brand Orange — primary accent
+const TERRA_SOFT = "F5E3DA";// derived tint of Orange
+const AI = "788C5D";        // brand Green — marks the AI-course layer
+const AI_SOFT = "E7ECDD";   // derived tint of Green
+const BLUE = "6A9BCC";      // brand Blue — secondary accent
+const BLUE_1 = "24486B";    // derived shades of Blue, for the funnel scale
+const BLUE_2 = "2F5B87";
+const BLUE_3 = "41729C";
+const SLATE = "4A4943";     // derived from Dark — emphasised body copy
+const BG = "FAF9F5";        // brand Light
 const CARD = "FFFFFF";
-const MUTED = "5F6672";
-const LINE = "E0DED8";
-const ICE = "D6E2F0";
+const MUTED = "6E6C63";     // derived from Dark — secondary body copy
+const LINE = "E8E6DC";      // brand Light Gray
+const MGRAY = "B0AEA5";     // brand Mid Gray
+const ICE = "D6D3C8";       // derived tint of Light Gray — text on dark
 
 const F = "Meiryo";
 const W = 13.3, M = 0.7, CW = W - M * 2;
-const sh = () => ({ type: "outer", color: "B5B0A4", blur: 9, offset: 2, angle: 90, opacity: 0.3 });
+const sh = () => ({ type: "outer", color: MGRAY, blur: 9, offset: 2, angle: 90, opacity: 0.3 });
 
 async function icon(C, color, size = 256) {
   const svg = ReactDOMServer.renderToStaticMarkup(
@@ -71,6 +80,18 @@ async function icon(C, color, size = 256) {
       });
   };
 
+  // ---- badge marking a page that carries the AI-course layer ----
+  const aiTag = (s) => {
+    s.addShape(pres.ShapeType.roundRect, {
+      x: W - M - 2.05, y: 0.4, w: 2.05, h: 0.34, rectRadius: 0.05,
+      fill: { color: AI_SOFT }, line: { color: AI, width: 1 },
+    });
+    s.addText("AI 講座パート", {
+      x: W - M - 2.05, y: 0.4, w: 2.05, h: 0.34, fontFace: F, fontSize: 10.5, bold: true,
+      color: AI, align: "center", valign: "middle", margin: 0,
+    });
+  };
+
   // ---- reusable AI callout bar ----
   const aiBar = (s, y, label, body) => {
     s.addShape(pres.ShapeType.roundRect, {
@@ -87,7 +108,7 @@ async function icon(C, color, size = 256) {
   const note = (s, y, txt, color) => {
     s.addText(txt, {
       x: M, y, w: CW, h: 0.35, fontFace: F, fontSize: 10,
-      color: color || "8A8578", margin: 0, valign: "middle",
+      color: color || "7D7B72", margin: 0, valign: "middle",
     });
   };
 
@@ -101,7 +122,7 @@ async function icon(C, color, size = 256) {
   {
     const s = pres.addSlide();
     s.background = { color: NAVY_DK };
-    s.addShape(pres.ShapeType.ellipse, { x: 9.8, y: -2.0, w: 6.0, h: 6.0, fill: { color: NAVY } });
+    s.addShape(pres.ShapeType.ellipse, { x: 9.8, y: -2.0, w: 6.0, h: 6.0, fill: { color: DARK2 } });
     s.addShape(pres.ShapeType.ellipse, { x: 11.6, y: 5.2, w: 3.0, h: 3.0, fill: { color: TERRA, transparency: 65 } });
     s.addText("AI採用アドバンス講座", {
       x: 0.9, y: 1.1, w: 8.5, h: 0.42, fontFace: F, fontSize: 16, bold: true,
@@ -121,7 +142,7 @@ async function icon(C, color, size = 256) {
       const x = 0.9 + i * (cw + gap);
       s.addShape(pres.ShapeType.roundRect, {
         x, y: 5.25, w: cw, h: 0.9, rectRadius: 0.12,
-        fill: { color: NAVY }, line: { color: TERRA, width: 1 },
+        fill: { color: DARK2 }, line: { color: TERRA, width: 1 },
       });
       s.addText(c, {
         x: x + 0.1, y: 5.25, w: cw - 0.2, h: 0.9, fontFace: F, fontSize: 12.5,
@@ -130,7 +151,7 @@ async function icon(C, color, size = 256) {
     });
     s.addText("株式会社ヤマシタ 御中 ／ 2026年8月", {
       x: 0.9, y: 6.45, w: 8.0, h: 0.35, fontFace: F, fontSize: 11,
-      color: "8FA3BC", margin: 0, valign: "middle",
+      color: "8C8A80", margin: 0, valign: "middle",
     });
     s.addNotes("本講座は「求めるケアスタッフを集める0円採用術」の提案内容を、実行できる教材の形に詳細化したものです。");
   }
@@ -194,6 +215,7 @@ async function icon(C, color, size = 256) {
   {
     const s = pres.addSlide();
     s.background = { color: CARD };
+    aiTag(s);
     head(s, null, "カリキュラム全体像 ｜ 全 6 モジュール", "上から順に進めます。1 つ飛ばすと、次のモジュールが機能しません");
 
     const mods = [
@@ -286,13 +308,13 @@ async function icon(C, color, size = 256) {
       values: [12, 45, 90],
     }], {
       x: M + 0.15, y: 2.1, w: 6.6, h: 3.75,
-      barDir: "bar", chartColors: [NAVY], showValue: true, dataLabelPosition: "outEnd",
+      barDir: "bar", chartColors: [BLUE_2], showValue: true, dataLabelPosition: "outEnd",
       dataLabelColor: NAVY, dataLabelFontFace: F, dataLabelFontSize: 12, dataLabelFontBold: true,
       showLegend: false, showTitle: false,
       catAxisLabelColor: NAVY, catAxisLabelFontFace: F, catAxisLabelFontSize: 11,
       valAxisLabelColor: MUTED, valAxisLabelFontFace: F, valAxisLabelFontSize: 10,
       valAxisMinVal: 0, valAxisMaxVal: 100, valAxisMajorUnit: 25,
-      valGridLine: { color: "EDEAE2", size: 1 }, catGridLine: { style: "none" }, barGapWidthPct: 60,
+      valGridLine: { color: LINE, size: 1 }, catGridLine: { style: "none" }, barGapWidthPct: 60,
     });
 
     const rx = M + 7.2, rw = W - rx - M;
@@ -336,9 +358,9 @@ async function icon(C, color, size = 256) {
     head(s, "MODULE 1", "採用ファネル ｜ 求職者が動く 4 つの段階", "採用活動はマーケティングと同じ構造。段階ごとに、かける手が違います");
 
     const st = [
-      { l: "① 認知", p: "「こんな施設があるんだ」", w: 7.4, c: NAVY, ic: I.eye },
-      { l: "② 比較", p: "「どうしてここなんだろう」", w: 6.2, c: "2C4E76", ic: I.layers },
-      { l: "③ 行動", p: "「応募しても大丈夫そう」", w: 5.0, c: "4A6B92", ic: I.click },
+      { l: "① 認知", p: "「こんな施設があるんだ」", w: 7.4, c: BLUE_1, ic: I.eye },
+      { l: "② 比較", p: "「どうしてここなんだろう」", w: 6.2, c: BLUE_2, ic: I.layers },
+      { l: "③ 行動", p: "「応募しても大丈夫そう」", w: 5.0, c: BLUE_3, ic: I.click },
       { l: "④ 確信", p: "「ここで働きたい」", w: 3.8, c: TERRA, ic: I.heart },
     ];
     const cx = M + 3.9;
@@ -381,8 +403,14 @@ async function icon(C, color, size = 256) {
         color: MUTED, margin: 0, valign: "top", lineSpacing: 18,
       });
     });
-    aiBar(s, 6.15, "ここが要点",
-      "段階を飛ばして「④ 確信」だけ強化しても効きません。止まっている段階を特定してから手を打ちます。");
+    s.addShape(pres.ShapeType.roundRect, {
+      x: M, y: 6.15, w: CW, h: 0.8, rectRadius: 0.06, fill: { color: NAVY },
+    });
+    s.addText([
+      { text: "ここが要点　", options: { bold: true, color: TERRA, fontSize: 12.5, fontFace: F } },
+      { text: "段階を飛ばして「④ 確信」だけ強化しても効きません。止まっている段階を特定してから手を打ちます。",
+        options: { color: CARD, fontSize: 12, fontFace: F } },
+    ], { x: M + 0.35, y: 6.15, w: CW - 0.7, h: 0.8, margin: 0, valign: "middle" });
     s.addNotes("ファネルは提案書の中心概念。各段階の心理と打ち手をセットで覚えてもらう。");
   }
 
@@ -390,6 +418,7 @@ async function icon(C, color, size = 256) {
   {
     const s = pres.addSlide();
     s.background = { color: CARD };
+    aiTag(s);
     head(s, "MODULE 1", "段階別 ｜ やること × AI の使いどころ", "AI は「書く・調べる・数える」を担当。判断と現場対応は人が担当します");
 
     s.addTable([
@@ -505,7 +534,7 @@ async function icon(C, color, size = 256) {
     });
     s.addShape(pres.ShapeType.roundRect, {
       x: M + 8.85, y: 2.1, w: 3.05, h: 2.2, rectRadius: 0.06,
-      fill: { color: TERRA_SOFT }, line: { color: TERRA, width: 1 },
+      fill: { color: TERRA_SOFT }, line: { color: TERRA, width: 1.5 },
     });
     s.addText("求職者の目に\n触れる", {
       x: M + 9.05, y: 2.5, w: 2.65, h: 0.8, fontFace: F, fontSize: 17, bold: true,
@@ -561,12 +590,12 @@ async function icon(C, color, size = 256) {
       { name: "自社採用を内製（累計）", labels: ["1人", "2人", "3人", "4人", "5人", "6人"], values: [60, 72, 84, 96, 108, 120] },
     ], {
       x: M + 0.15, y: 2.15, w: 6.6, h: 3.6,
-      chartColors: [TERRA, NAVY], lineSize: 3, lineDataSymbolSize: 7,
+      chartColors: [TERRA, BLUE_2], lineSize: 3, lineDataSymbolSize: 7,
       showTitle: false, showLegend: true, legendPos: "b", legendFontFace: F, legendFontSize: 10.5, legendColor: SLATE,
       catAxisLabelColor: NAVY, catAxisLabelFontFace: F, catAxisLabelFontSize: 10.5,
       valAxisLabelColor: MUTED, valAxisLabelFontFace: F, valAxisLabelFontSize: 10,
       valAxisMinVal: 0, valAxisMaxVal: 600, valAxisMajorUnit: 150,
-      valGridLine: { color: "EDEAE2", size: 1 }, catGridLine: { style: "none" },
+      valGridLine: { color: LINE, size: 1 }, catGridLine: { style: "none" },
     });
     s.addText("累計採用コストの推移（万円・試算例）", {
       x: M + 0.3, y: 2.0, w: 6.3, h: 0.3, fontFace: F, fontSize: 11, bold: true,
@@ -641,6 +670,7 @@ async function icon(C, color, size = 256) {
   {
     const s = pres.addSlide();
     s.background = { color: BG };
+    aiTag(s);
     head(s, "MODULE 3", "AI で原稿をつくる ｜ プロンプトの型", "この 5 つを埋めて渡すだけで、たたき台の質が大きく変わります");
 
     const parts = [
@@ -685,7 +715,7 @@ async function icon(C, color, size = 256) {
       "【制約】事実にない数字は書かない。\n" +
       "　「アットホーム」など曖昧な言葉は使わない。",
       { x: rx + 0.3, y: 2.55, w: rw - 0.6, h: 2.7, fontFace: F, fontSize: 11,
-        color: "D9E2EE", margin: 0, valign: "top", lineSpacing: 18 });
+        color: ICE, margin: 0, valign: "top", lineSpacing: 18 });
 
     s.addText("出てきた原稿のチェック 3 点", {
       x: M, y: 5.6, w: 5.5, h: 0.35, fontFace: F, fontSize: 13, bold: true,
@@ -857,6 +887,7 @@ async function icon(C, color, size = 256) {
   {
     const s = pres.addSlide();
     s.background = { color: CARD };
+    aiTag(s);
     head(s, "MODULE 4", "スタッフ動画 ｜ 30〜40 秒でつくる", "文字では伝わらない「空気感」を運ぶ、いちばん効率のいい素材です");
 
     const st = [
@@ -958,6 +989,7 @@ async function icon(C, color, size = 256) {
   {
     const s = pres.addSlide();
     s.background = { color: CARD };
+    aiTag(s);
     head(s, null, "AI 活用マップ ｜ どこを任せ、どこを人がやるか", "AI は作業を速くする道具です。判断と現場の関係づくりは人の仕事のままです");
 
     s.addTable([
@@ -980,7 +1012,7 @@ async function icon(C, color, size = 256) {
   {
     const s = pres.addSlide();
     s.background = { color: NAVY_DK };
-    s.addShape(pres.ShapeType.ellipse, { x: -2.2, y: 5.0, w: 5.0, h: 5.0, fill: { color: NAVY } });
+    s.addShape(pres.ShapeType.ellipse, { x: -2.2, y: 5.0, w: 5.0, h: 5.0, fill: { color: DARK2 } });
     s.addText("90 日ロードマップ", {
       x: M, y: 0.5, w: CW, h: 0.7, fontFace: F, fontSize: 30, bold: true,
       color: CARD, margin: 0, valign: "middle",
@@ -1030,6 +1062,48 @@ async function icon(C, color, size = 256) {
       color: CARD, align: "center", valign: "middle", margin: 0,
     });
     s.addNotes("最後は必ず「明日やる3つ」まで落とす。ここまで具体化しないと動き出さない。");
+  }
+
+  /* ==================== P19 出典と作成方針 ==================== */
+  {
+    const s = pres.addSlide();
+    s.background = { color: CARD };
+    head(s, null, "出典と作成方針", "各ページが、どの情報にもとづいて書かれているかの内訳です");
+
+    s.addTable([
+      [th("区分"), th("該当ページ"), th("主な内容"), th("出どころ")],
+      [{ text: "提案書の内容を反映", options: { bold: true, color: NAVY } }, "P4・6・9・11・14",
+        "構造的課題／採用ファネル 4 段階／Engage の 0 円掲載／採用ページ 6 ブロック／職場体験会",
+        { text: "出典 ①", options: { bold: true, color: NAVY } }],
+      [{ text: "提案書の方針を実務手順に展開", options: { bold: true, color: NAVY } }, "P2・5・8・10・13・16・18",
+        "採用単価の算出ワーク／ボトルネック診断／内製と外注の比較／ペルソナ設計／週次運用／90 日計画",
+        "本資料で独自に作成"],
+      [{ text: "AI 講座パート", options: { bold: true, color: AI } }, { text: "P3・7・12・15・17", options: { bold: true, color: AI } },
+        { text: "段階別の AI 活用／プロンプトの 5 要素と記入例／動画編集の AI 活用／AI 活用マップ", options: { color: AI } },
+        { text: "出典 ③", options: { bold: true, color: AI } }],
+      [{ text: "金額・比率・目安", options: { bold: true, color: NAVY } }, "P2・5・10・16",
+        "紹介手数料の相場、採用単価、KPI の目安レンジ",
+        "業界一般の相場からの試算例"],
+    ], { ...tblOpts([2.1, 2.6, 4.8, 2.4]), y: 1.72, rowH: 0.6, fontSize: 10 });
+
+    s.addShape(pres.ShapeType.roundRect, {
+      x: M, y: 5.3, w: CW, h: 1.6, rectRadius: 0.06,
+      fill: { color: BG }, line: { color: LINE, width: 1 },
+    });
+    s.addText([
+      { text: "① ", options: { bold: true, color: NAVY, fontSize: 10.5, fontFace: F } },
+      { text: "「介護・福祉事業における自社採用戦略提案書 ― 求めるケアスタッフを集める 0円採用術」2026年8月24日／株式会社ヤマシタ 御中（本資料の一次情報）",
+        options: { color: SLATE, fontSize: 10.5, fontFace: F, breakLine: true } },
+      { text: "② ", options: { bold: true, color: NAVY, fontSize: 10.5, fontFace: F } },
+      { text: "元のウェビナー（utlink.jp）および Canva 資料は、作成環境のネットワーク制限により直接参照できていません。① とご提供いただいた要約テキストを一次情報として使用しています。",
+        options: { color: SLATE, fontSize: 10.5, fontFace: F, breakLine: true } },
+      { text: "③ ", options: { bold: true, color: AI, fontSize: 10.5, fontFace: F } },
+      { text: "「AI採用アドバンス講座」の公式教材テキストは提供を受けていません。AI 講座パートは、生成 AI 活用の一般的な実務にもとづき、本資料の枠組みに合わせて独自に構成したものです。特定の講座の内容を引用したものではありません。",
+        options: { color: SLATE, fontSize: 10.5, fontFace: F } },
+    ], { x: M + 0.35, y: 5.42, w: CW - 0.7, h: 1.4, margin: 0, valign: "top", lineSpacing: 19 });
+
+    note(s, 7.0, "※ 実際の講座テキストをご提供いただければ、AI 講座パートを公式内容に差し替えます。");
+    s.addNotes("提供資料に含まれていた内容と、こちらで補った内容の切り分け。AIパートは独自構成である点を明示している。");
   }
 
   await pres.writeFile({ fileName: process.argv[2] || "course.pptx" });
